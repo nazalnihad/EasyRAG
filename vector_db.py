@@ -1,56 +1,51 @@
 import faiss
-from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.documents import Document
-from uuid import uuid4
-import os
 import pickle
+import os
 
-# Initialize the HuggingFaceEmbeddings model
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+class VectorDatabase:
+    def __init__(self, faiss_index_path="vectorstore.pkl"):
+        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        self.faiss_index_path = faiss_index_path
+        self.vector_store = self._initialize_vector_store()
 
-faiss_index_path = "faiss_index"
-docstore_path = "docstore.pkl"
+    def _initialize_vector_store(self):
+        if os.path.exists(self.faiss_index_path):
+            print(f"Loading existing vector store from {self.faiss_index_path}")
+            with open(self.faiss_index_path, 'rb') as f:
+                vector_store = pickle.load(f)
+        else:
+            print("Creating a new vector store.")
+            vector_store = None
+        return vector_store
 
-# Check if the FAISS index and document store already exist
-if os.path.exists(faiss_index_path) and os.path.exists(docstore_path):
-    # Load the existing FAISS vector store and document store
-    with open(docstore_path, 'rb') as f:
-        docstore = pickle.load(f)
-    vector_store = FAISS.load_local(
-        faiss_index_path, 
-        embeddings=embeddings, 
-        allow_dangerous_deserialization=True
-    )
-    vector_store.docstore = docstore
-else:
-    # Create a new FAISS index and document store
-    index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
-    docstore = InMemoryDocstore()
-    vector_store = FAISS(
-        embedding_function=embeddings,
-        index=index,
-        docstore=docstore,
-        index_to_docstore_id={},
-    )
+    def add_docs(self, documents):
+        if self.vector_store:
+            print("Merging documents into the existing vector store.")
+            new_vector_store = FAISS.from_documents(documents, self.embeddings)
+            self.vector_store.merge_from(new_vector_store)
+        else:
+            print("Adding documents to a new vector store.")
+            self.vector_store = FAISS.from_documents(documents, self.embeddings)
+        
+        self._save_vector_store()
 
-    # Add documents to the vector store
-    # documents = [
-    #     Document(page_content="I had chocolate chip pancakes and scrambled eggs for breakfast this morning.", metadata={"source": "tweet"}),
-    #     Document(page_content="The weather forecast for tomorrow is cloudy and overcast, with a high of 62 degrees.", metadata={"source": "news"}),
-    # ]
-    # uuids = [str(uuid4()) for _ in range(len(documents))]
-    # vector_store.add_documents(documents=documents, ids=uuids)
+    def _save_vector_store(self):
+        print(f"Saving vector store to {self.faiss_index_path}")
+        with open(self.faiss_index_path, 'wb') as f:
+            pickle.dump(self.vector_store, f)
 
-    # Save the FAISS index and document store for future use
-    vector_store.save_local(faiss_index_path)
-    with open(docstore_path, 'wb') as f:
-        pickle.dump(docstore, f)
+    def perform_similarity_search(self, query, k=2):
+        if not self.vector_store:
+            print("Vector store is empty. Please add documents first.")
+            return []
 
-# Perform a similarity search
-results = vector_store.similarity_search("weather", k=2)
+        print(f"Performing similarity search for query: {query}")
+        results = self.vector_store.similarity_search(query, k=k)
+        if not results:
+            print("No results found.")
+        else:
+            print(f"Found {len(results)} results.")
+        return results
 
-# Print the results
-for res in results:
-    print(f"* {res.page_content} [{res.metadata}]")
