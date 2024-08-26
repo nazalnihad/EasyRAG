@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Management and Query System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Add styles for processing animation */
+        .processing {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.2em;
+        }
+        .processing.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="toggle-controls">
+            <button id="toggle-pdf">Toggle PDF</button>
+            <button id="toggle-chat">Toggle Chat</button>
+        </div>
+        <h2>PDF Files</h2>
+        <ul id="file-list">
+            {% for file in files %}
+            <li><a href="#" onclick="displayPDF('{{ file }}')">{{ file }}</a></li>
+            {% endfor %}
+        </ul>
+        <div class="new-files">
+            <h3>New Files</h3>
+            <ul id="new-file-list">
+                {% for file in new_files %}
+                <li>
+                    {{ file }}
+                    <button onclick="processDocument('{{ file }}')">Process</button>
+                </li>
+                {% endfor %}
+            </ul>
+            <button id="refresh-files">Refresh Files</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="pdf-container" id="pdf-container">
+            <div class="pdf-display" id="pdf-content">
+                Select a PDF to display its content here.
+            </div>
+        </div>
+        <div class="chat-container" id="chat-container">
+            <div class="chat-area">
+                <div class="messages" id="chat-messages"></div>
+                <input type="text" id="query-input" placeholder="Enter your query...">
+            </div>
+        </div>
+    </div>
+    <div class="processing" id="processing">Processing document...</div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -8,7 +8,6 @@ import warnings
 # Suppress specific FutureWarnings
 warnings.filterwarnings("ignore", category=FutureWarning, message=".*clean_up_tokenization_spaces.*")
 warnings.filterwarnings("ignore", category=FutureWarning, message=".*torch.load.*")
-
 PROCESSED_FILES_PATH = 'processed_files.json'
 
 def load_processed_files():
@@ -27,7 +26,7 @@ def save_processed_files(processed_files):
     with open(PROCESSED_FILES_PATH, 'w') as f:
         json.dump(list(processed_files), f)
 
-def process_and_search(doc_path):
+def main(doc_path, query):
     processed_files = load_processed_files()
     filename = os.path.basename(doc_path)
     
@@ -37,7 +36,11 @@ def process_and_search(doc_path):
     if filename in processed_files:
         response = input(f"The PDF '{filename}' has already been processed. Do you want to skip reprocessing and just get the query results? (y/n): ")
         if response.lower() == 'y':
-            return db
+            print("Fetching query results from existing data...")
+            search_results = db.perform_similarity_search(query, k=3)
+            for res in search_results:
+                print(f"* {res.page_content} [{res.metadata}]")
+            return
         else:
             print("Reprocessing the document...")
     
@@ -50,33 +53,22 @@ def process_and_search(doc_path):
     # Add documents to vector store
     db.add_docs(documents)
     
+    # Perform similarity search
+    search_results = db.perform_similarity_search(query, k=3)
+    
+    # Print results
+    for res in search_results:
+        print(f"* {res.page_content} [{res.metadata}]")
+    
     # Add filename to processed files list if it's not already there
     if filename not in processed_files:
         processed_files.add(filename)
         save_processed_files(processed_files)
-    
-    return db
-
-def main(doc_path):
-    db = process_and_search(doc_path)
-    
-    while True:
-        search_query = input("Enter your search query (type 'q' to quit): ")
-        if search_query.lower() == 'q':
-            print("Exiting...")
-            break
-        
-        # Perform similarity search
-        search_results = db.perform_similarity_search(search_query, k=3)
-        
-        # Print results
-        if search_results:
-            for res in search_results:
-                print(f"* {res.page_content} [{res.metadata}]")
-        else:
-            print("No results found.")
+    else:
+        print(f"The file '{filename}' is already in the processed files list.")
 
 # Example usage
 if __name__ == "__main__":
     document_path = 'test/example.pdf'
-    main(document_path)
+    search_query = 'oal has been that the authors do not need to make modifications'
+    main(document_path, search_query)

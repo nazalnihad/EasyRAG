@@ -1,1 +1,6 @@
 env/
+.env
+/test
+vectorstore.pkl
+processed_files.json
+/__pycache__
