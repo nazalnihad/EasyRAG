@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify ,send_file
 import os
 import json
 from vector_db import VectorDatabase
@@ -11,6 +11,8 @@ app = Flask(__name__)
 # Constants
 FOLDER_PATH = 'test'
 PROCESSED_FILES_PATH = 'processed_files.json'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), FOLDER_PATH)
+
 db = VectorDatabase()
 
 # Load processed files
@@ -80,5 +82,12 @@ def get_new_files():
     new_files = [f for f in files if f not in processed_files]
     return jsonify(new_files)
 
+@app.route('/display_pdf/<filename>')
+def display_pdf(filename):
+    try:
+        return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename), mimetype='application/pdf')
+    except FileNotFoundError:
+        return "PDF file not found", 404
+    
 if __name__ == '__main__':
     app.run(debug=True)

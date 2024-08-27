@@ -5,6 +5,24 @@ const chatContainer = document.querySelector('.chat-container');
 const processingElement = document.getElementById('processing');
 let isProcessing = false;
 
+function displayPDF(file,page_num=1) {
+    fetch(`/display_pdf/${encodeURIComponent(file)}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok.');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const pdfUrl = URL.createObjectURL(blob);
+        const pdfViewer = document.getElementById('pdf-content');
+        pdfViewer.innerHTML = `<iframe src="${pdfUrl}#page=${page_num}" width="100%" height="100%"></iframe>`;
+    })
+    .catch(error => {
+        console.error('There was a problem displaying the PDF:', error);
+        alert('Error displaying PDF.');
+    });
+}
 // Process document function
 function processDocument(file) {
     if (isProcessing) return; // Prevent multiple clicks
@@ -65,6 +83,48 @@ function updateNewFilesList() {
 }
 
 // Handle query input
+// document.getElementById('query-input').addEventListener('keypress', function (e) {
+//     if (e.key === 'Enter') {
+//         const query = this.value;
+//         this.value = '';
+        
+//         const messagesDiv = document.getElementById('chat-messages');
+//         messagesDiv.innerHTML += `<div class="user-message">${query}</div>`;
+
+//         fetch('/query', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json',
+//             },
+//             body: JSON.stringify({ query: query }),
+//         })
+//         .then(response => {
+//             if (!response.ok) {
+//                 throw new Error('Network response was not ok.');
+//             }
+//             return response.json();
+//         })
+//         .then(data => {
+//             let botResponse = '';
+//             if (!data.response || data.response.trim() === '') {
+//                 botResponse = "I can't find info on that.";
+//             } else {
+//                 // Use a Markdown parser to convert the response to HTML
+//                 botResponse = marked.parse(data.response);
+//             }
+//             if (botResponse.startsWith('source')){
+                
+//             }
+
+//             messagesDiv.innerHTML += `<div class="bot-message">${botResponse}</div>`;
+//             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+//         })
+//         .catch(error => {
+//             console.error('There was a problem with the fetch operation:', error);
+//         });
+//     }
+// });
+
 document.getElementById('query-input').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         const query = this.value;
@@ -80,20 +140,22 @@ document.getElementById('query-input').addEventListener('keypress', function (e)
             },
             body: JSON.stringify({ query: query }),
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok.');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             let botResponse = '';
             if (!data.response || data.response.trim() === '') {
                 botResponse = "I can't find info on that.";
             } else {
-                botResponse = data.response;
+                // Replace custom markdown format with clickable links
+                botResponse = data.response.replace(/\(source:\s*([^,]+)\s*,\s*page:\s*(\d+)\)/g, 
+                    (match, filename, page) => {
+                        return `\n\nsource : <a href="#" onclick="displayPDF('${filename}', ${page})">${filename}, page: ${page}</a>`;
+                    }
+                );
             }
-            messagesDiv.innerHTML += `<div class="bot-message">${botResponse}</div>`;
+            // Use `marked.parse` to convert markdown to HTML after replacing the links
+            const finalResponse = marked.parse(botResponse);
+            messagesDiv.innerHTML += `<div class="bot-message">${finalResponse}</div>`;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         })
         .catch(error => {
@@ -101,6 +163,8 @@ document.getElementById('query-input').addEventListener('keypress', function (e)
         });
     }
 });
+
+
 
 // Toggle PDF visibility
 togglePDFButton.addEventListener('click', function() {

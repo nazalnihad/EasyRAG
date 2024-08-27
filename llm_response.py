@@ -9,8 +9,6 @@ genai.configure(api_key=api_key)
 
 # Initialize the model
 model = genai.GenerativeModel('gemini-1.5-flash')
-# response = model.generate_content("Write a story about an AI and magic")
-# print(response.text)
 
 def get_response(query, chunks):
     # Construct the prompt
@@ -29,8 +27,11 @@ def get_response(query, chunks):
     prompt += """
     **Instructions:**
     1. Answer the query based on the provided best chunk that matches the query the best.
-    2. If the information in the chunks does not cover the query, respond with "I can't find info on that."
-    3. Include references to the file name and page number if specific chunks are used in your response.
+    2. If the information in the chunks does not cover the query, respond with "I can't find info on that" only.
+    3.Format the references to the file name and page number in your response exactly like this: (source:filename.pdf,page:X), 
+    where filename.pdf is the actual file name and X is the specific page number mention the source at the end only once.If there are no relevant chunks donot mention the source   
+    4. Do not mention chunks in the response.
+    5. Format your response using Markdown with correct spacing for better readability.
 
     **Response:**
     """
@@ -38,10 +39,8 @@ def get_response(query, chunks):
     # Generate the response
     try:
         response = model.generate_content(prompt)
-        # if response:
-            # print(response.text)
+        if response:
+            print(response.text)
         return response.text if response and response.text else "No response generated."
     except Exception as e:
         return f"An error occurred: {str(e)}"
-
-

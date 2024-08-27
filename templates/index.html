@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Management and Query System</title>
+    <title>Easy RAG</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
-        /* Add styles for processing animation */
         .processing {
             display: none;
             position: fixed;
@@ -27,6 +28,7 @@
 <body>
 
     <div class="sidebar">
+        <h1>Easy RAG</h1>
         <div class="toggle-controls">
             <button id="toggle-pdf">Toggle PDF</button>
             <button id="toggle-chat">Toggle Chat</button>
